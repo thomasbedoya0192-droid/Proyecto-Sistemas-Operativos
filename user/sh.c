@@ -2,6 +2,7 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
+
 // Función auxiliar para leer una línea de la consola
 int getcmd(char *buf, int nbuf) {
   fprintf(2, "mi_shell$ "); // Nuestro prompt personalizado
@@ -44,10 +45,45 @@ int main(void) {
     }
 
     // 2. Aquí irá la lógica para ejecutar comandos (ls, echo, etc.)
-    // Por ahora, solo haremos un "echo" de prueba para confirmar que lee bien.
-    printf("Comando ingresado: %s\n", buf);
-  }
+    
+    int pid = fork();
+    if(pid<0){
+      printf("error al crear el hijo");
+    }
+
+    if(pid==0){
+	    //parser
+	    int i =0;
+	    int argc = 0; //contador de palabras
+      int word = 0; 
+    	char *argv[10];
+    
+      while(buf[i] != '\0'){
+	      if(buf[i]==' ' || buf[i]=='\n'){
+	        buf[i]='\0';
+	        word=0;
+	      }else{
+	        if(word==0 && argc<9){
+			      argv[argc]=&buf[i];
+			      argc= argc+1;
+			      word=1;
+	   	    }
+	      }
+	      i=i+1;
+      }
+      argv[argc]=0; // el ultimo elemento del arreglo debe ser 0
+
+ 	    exec(argv[0],argv);
+      
+      //esta linea jamas se ejecutara si el exec tiene exito porque se transformara en otro programa
+	    printf("fallo de ejecucion");
+	    exit(1);
+    }else{
+	    wait(0);
+    }
+	
   
   // Salida controlada del shell
   exit(0);
+}
 }
