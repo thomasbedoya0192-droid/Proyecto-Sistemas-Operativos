@@ -41,10 +41,9 @@ int main(void) {
         if(pid < 0){
             fprintf(2, "Error: fork falló\n");
         } 
-        else if(pid == 0){
-            // --- CÓDIGO DEL PROCESO HIJO ---
+        else if(pid == 0){//codigo del hijo
             
-            // 1. TU PARSER (Soporta argumentos + redirecciones)
+            // parser
             int i = 0;
             int argc = 0;
             int inWord = 0;
@@ -77,7 +76,7 @@ int main(void) {
 
             if(argc == 0) exit(0);
 
-            // 2. APLICAR REDIRECCIONES (close + open)
+            // redirecciones
             if(type_redir == '>') {
                 close(1);
                 if(open(file, O_WRONLY | O_CREATE) < 0) {
@@ -92,14 +91,14 @@ int main(void) {
                 }
             }
 
-            // 3. EJECUTAR EL COMANDO
+            // ejecucion del hijo
             exec(argv[0], argv);
             
             fprintf(2, "Error: comando '%s' no encontrado\n", argv[0]);
             exit(1);
         } 
         else {
-            // --- CÓDIGO DEL PROCESO PADRE ---
+            //codigo del padre
             wait(0);
         }
     }
