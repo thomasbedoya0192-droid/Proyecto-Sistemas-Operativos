@@ -6,6 +6,7 @@ Este proyecto implementa dos nuevas llamadas al sistema en xv6-riscv para agrega
 
 - **`trace`**: Rastrea llamadas al sistema ejecutadas por un proceso y sus hijos, imprimiendo qué syscalls se invocaron y sus valores de retorno.
 - **`sysinfo`**: Consulta información actual del sistema: memoria libre, páginas usadas, páginas disponibles y procesos listos para ejecutar.
+- **`Repositorio a clonar de xv6`**:https://github.com/mit-pdos/xv6-riscv.git
 
 ## Integrantes
 
