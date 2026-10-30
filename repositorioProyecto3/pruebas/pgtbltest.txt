@@ -1,0 +1,52 @@
+Proyecto 3 - Tablas de páginas en acción - evidencia de pruebas
+Prueba:     pgtbltest
+Fecha:      2026-10-30 10:19:39
+Commit:     06aad25
+Máquina:    vm
+Duración:   23 s
+Fin:        terminó
+Resultado:  PASÓ
+------------------------------------------------------------
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+xv6 kernel is booting
+
+hart 2 starting
+hart 1 starting
+init: starting sh
+$ pgtbltest
+pgtbltest: inicio
+prueba ugetpid_basico: OK
+prueba ugetpid_hijos: OK
+prueba ugetpid_exec: OK
+usertrap(): unexpected scause 0xf pid=17
+            sepc=0xce stval=0x3fffffd000
+prueba usyscall_solo_lectura: OK
+prueba heap_no_invade: OK
+prueba sin_fugas_usyscall: OK
+vmprint: region_perezosa=0x0000000000006000 tocada=0x0000000000009000
+vmprint: inicio
+page table 0x0000000087f23000
+ ..0x0000000000000000: pte 0x0000000021fd2001 pa 0x0000000087f48000
+ .. ..0x0000000000000000: pte 0x0000000021fd0401 pa 0x0000000087f41000
+ .. .. ..0x0000000000000000: pte 0x0000000021fca05b pa 0x0000000087f28000
+ .. .. ..0x0000000000001000: pte 0x0000000021fc985b pa 0x0000000087f26000
+ .. .. ..0x0000000000002000: pte 0x0000000021fc9c1b pa 0x0000000087f27000
+ .. .. ..0x0000000000003000: pte 0x0000000021fc94d7 pa 0x0000000087f25000
+ .. .. ..0x0000000000004000: pte 0x0000000021fd1407 pa 0x0000000087f45000
+ .. .. ..0x0000000000005000: pte 0x0000000021fd08d7 pa 0x0000000087f42000
+ .. .. ..0x0000000000009000: pte 0x00000000202b8cd7 pa 0x0000000080ae3000
+ ..0x0000003fc0000000: pte 0x0000000021fca401 pa 0x0000000087f29000
+ .. ..0x0000003fffe00000: pte 0x0000000021fd1c01 pa 0x0000000087f47000
+ .. .. ..0x0000003fffffd000: pte 0x0000000021fc9013 pa 0x0000000087f24000
+ .. .. ..0x0000003fffffe000: pte 0x0000000021fca8c7 pa 0x0000000087f2a000
+ .. .. ..0x0000003ffffff000: pte 0x000000002000184b pa 0x0000000080006000
+vmprint: fin
+prueba vmprint: OK
+prueba pgaccess_basico: OK
+prueba pgaccess_64: OK
+prueba pgaccess_argumentos: OK
+prueba pgaccess_perezoso: OK
+pgtbltest: TODAS LAS PRUEBAS PASARON (11 de 11)
+$ 
+Revisión del formato de vmprint(): OK
