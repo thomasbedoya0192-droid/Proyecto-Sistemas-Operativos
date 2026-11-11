@@ -1,6 +1,6 @@
-// Physical memory allocator, for user processes,
-// kernel stacks, page-table pages,
-// and pipe buffers. Allocates whole 4096-byte pages.
+// Asignador de memoria física con conteo de referencias por página.
+// Una página compartida por Copy-on-Write tiene más de un dueño; solo
+// vuelve a la lista libre cuando su conteo llega a cero.
 
 #include "types.h"
 #include "param.h"
@@ -11,8 +11,11 @@
 
 void freerange(void *pa_start, void *pa_end);
 
-extern char end[]; // first address after kernel.
-                   // defined by kernel.ld.
+extern char end[];  // primera dirección después del kernel (kernel.ld)
+
+// Índice del conteo de una página física: cada página entre KERNBASE y PHYSTOP.
+#define PA2IDX(pa) (((uint64)(pa) - KERNBASE) / PGSIZE)
+#define NPAGINAS   (((uint64)PHYSTOP - KERNBASE) / PGSIZE)
 
 struct run {
   struct run *next;
@@ -23,38 +26,56 @@ struct {
   struct run *freelist;
 } kmem;
 
+// Conteo de referencias. Tiene su propio lock, separado de kmem.lock:
+// nunca se toman los dos a la vez, así que no hay deadlock.
+struct {
+  struct spinlock lock;
+  int count[NPAGINAS];
+} refs;
+
 void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
-  freerange(end, (void *)PHYSTOP);
+  initlock(&refs.lock, "refs");
+  freerange(end, (void*)PHYSTOP);
 }
 
 void
 freerange(void *pa_start, void *pa_end)
 {
   char *p;
-  p = (char *)PGROUNDUP((uint64)pa_start);
-  for (; p + PGSIZE <= (char *)pa_end; p += PGSIZE)
+  p = (char*)PGROUNDUP((uint64)pa_start);
+  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE){
+    // kfree() resta una referencia; al inicio la página debe tener 1
+    // para que llegue a 0 y entre a la lista libre.
+    refs.count[PA2IDX(p)] = 1;
     kfree(p);
+  }
 }
 
-// Free the page of physical memory pointed at by pa,
-// which normally should have been returned by a
-// call to kalloc().  (The exception is when
-// initializing the allocator; see kinit above.)
+// Quita una referencia a la página. Solo la libera cuando el conteo llega a 0.
 void
 kfree(void *pa)
 {
   struct run *r;
+  int libre;
 
-  if (((uint64)pa % PGSIZE) != 0 || (char *)pa < end || (uint64)pa >= PHYSTOP)
+  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
 
-  // Fill with junk to catch dangling refs.
-  memset(pa, 1, PGSIZE);
+  acquire(&refs.lock);
+  if(refs.count[PA2IDX(pa)] < 1)
+    panic("kfree: página sin referencias");
+  refs.count[PA2IDX(pa)]--;
+  libre = (refs.count[PA2IDX(pa)] == 0);
+  release(&refs.lock);
 
-  r = (struct run *)pa;
+  if(!libre)
+    return;  // otro dueño sigue usando la página
+
+  memset(pa, 1, PGSIZE);  // relleno para detectar referencias colgantes
+  r = (struct run*)pa;
 
   acquire(&kmem.lock);
   r->next = kmem.freelist;
@@ -62,9 +83,7 @@ kfree(void *pa)
   release(&kmem.lock);
 }
 
-// Allocate one 4096-byte page of physical memory.
-// Returns a pointer that the kernel can use.
-// Returns 0 if the memory cannot be allocated.
+// Entrega una página libre con una sola referencia.
 void *
 kalloc(void)
 {
@@ -72,11 +91,40 @@ kalloc(void)
 
   acquire(&kmem.lock);
   r = kmem.freelist;
-  if (r)
+  if(r)
     kmem.freelist = r->next;
   release(&kmem.lock);
 
-  if (r)
-    memset((char *)r, 5, PGSIZE); // fill with junk
-  return (void *)r;
+  if(r){
+    acquire(&refs.lock);
+    refs.count[PA2IDX(r)] = 1;
+    release(&refs.lock);
+    memset((char*)r, 5, PGSIZE);  // relleno para detectar datos sin inicializar
+  }
+  return (void*)r;
+}
+
+// Suma una referencia a una página ya asignada. La usará uvmcopy().
+void
+krefinc(void *pa)
+{
+  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+    panic("krefinc");
+
+  acquire(&refs.lock);
+  if(refs.count[PA2IDX(pa)] < 1)
+    panic("krefinc: página libre");
+  refs.count[PA2IDX(pa)]++;
+  release(&refs.lock);
+}
+
+//cambio 11 nov
+int
+krefcount(void *pa)
+{
+  int n;
+  acquire(&refs.lock);
+  n = refs.count[PA2IDX(pa)];
+  release(&refs.lock);
+  return n;
 }
