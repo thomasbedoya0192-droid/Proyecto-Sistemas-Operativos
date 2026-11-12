@@ -295,35 +295,45 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 // physical memory.
 // returns 0 on success, -1 on failure.
 // frees any allocated pages on failure.
+//cambio 12 nov
+
+// Crea en "new" las mismas páginas de "old" (0 a sz) sin copiarlas.
+// Las páginas escribibles quedan compartidas y marcadas PTE_COW en ambas tablas.
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
 
-  for (i = 0; i < sz; i += PGSIZE) {
-    if ((pte = walk(old, i, 0)) == 0)
-      continue; // page table entry hasn't been allocated
-    if ((*pte & PTE_V) == 0)
-      continue; // physical page hasn't been allocated
+  for(i = 0; i < sz; i += PGSIZE){
+    // Páginas perezosas que aún no tienen memoria: no se comparten.
+    if((pte = walk(old, i, 0)) == 0)
+      continue;
+    if((*pte & PTE_V) == 0)
+      continue;
+
+    // Quitar escritura a las páginas escribibles: pasan a CoW.
+    if(*pte & PTE_W){
+      *pte = (*pte & ~PTE_W) | PTE_COW;
+    }
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    if ((mem = kalloc()) == 0)
+
+    if(mappages(new, i, PGSIZE, pa, flags) != 0)
       goto err;
-    memmove(mem, (char *)pa, PGSIZE);
-    if (mappages(new, i, PGSIZE, (uint64)mem, flags) != 0) {
-      kfree(mem);
-      goto err;
-    }
+    krefinc((void*)pa);   // la página ahora tiene un dueño más
   }
+  // El padre tenía la traducción con permiso de escritura en la TLB.
+  sfence_vma();
   return 0;
 
-err:
+ err:
   uvmunmap(new, 0, i / PGSIZE, 1);
   return -1;
 }
+
+
 
 // mark a PTE invalid for user access.
 // used by exec for the user stack guard page.
@@ -341,6 +351,7 @@ uvmclear(pagetable_t pagetable, uint64 va)
 // Copy from kernel to user.
 // Copy len bytes from src to virtual address dstva in a given page table.
 // Return 0 on success, -1 on error.
+//cambio 12 de nov
 int
 copyout(pagetable_t pagetable, uint64 psz, uint64 dstva, char *src, uint64 len)
 {
@@ -360,6 +371,18 @@ copyout(pagetable_t pagetable, uint64 psz, uint64 dstva, char *src, uint64 len)
     }
 
     pte = walk(pagetable, va0, 0);
+
+    // Página Copy-on-Write: se copia antes de escribir, porque el kernel
+    // escribe directamente y no hay page fault que lo avise.
+    if (pte != 0 && (*pte & PTE_COW) != 0) {
+      if (cowfault(pagetable, va0) < 0) {
+        setkilled(myproc());
+        return -1;
+      }
+      // La página física cambió: hay que leer la nueva dirección.
+      pa0 = PTE2PA(*pte);
+    }
+
     // forbid copyout over read-only user text pages.
     if ((*pte & PTE_W) == 0)
       return -1;
@@ -375,6 +398,8 @@ copyout(pagetable_t pagetable, uint64 psz, uint64 dstva, char *src, uint64 len)
   }
   return 0;
 }
+
+
 
 // Copy from user to kernel.
 // Copy len bytes to dst from virtual address srcva in a given page table.

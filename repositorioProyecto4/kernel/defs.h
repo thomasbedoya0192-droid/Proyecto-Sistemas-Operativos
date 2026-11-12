@@ -189,3 +189,6 @@ void            virtio_disk_intr(void);
 //cambio 11 nov
 int             krefcount(void*);
 int             cowfault(pagetable_t, uint64);
+
+//cambio 12 nov
+void            krefinc(void*);

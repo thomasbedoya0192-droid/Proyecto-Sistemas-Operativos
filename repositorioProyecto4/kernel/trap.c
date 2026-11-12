@@ -75,7 +75,6 @@ usertrap(void)
     // ok
   } else if (r_scause() == 15 &&
              (cow = cowfault(p->pagetable, r_stval())) != -1) {
-    // cambio 11 nov, fallo CoW resuelto; si no hubo memoria, se mata el proceso sin pánico
     if (cow < 0)
       setkilled(p);
   } else if ((r_scause() == 15 || r_scause() == 13) &&

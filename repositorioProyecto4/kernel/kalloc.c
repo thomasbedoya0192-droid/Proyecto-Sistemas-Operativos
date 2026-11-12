@@ -119,6 +119,7 @@ krefinc(void *pa)
 }
 
 //cambio 11 nov
+//Devuelve cuántas referencias tiene una página física.
 int
 krefcount(void *pa)
 {
