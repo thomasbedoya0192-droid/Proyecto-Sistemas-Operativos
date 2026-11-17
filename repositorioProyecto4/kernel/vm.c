@@ -330,6 +330,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 
  err:
   uvmunmap(new, 0, i / PGSIZE, 1);
+  sfence_vma();
   return -1;
 }
 
