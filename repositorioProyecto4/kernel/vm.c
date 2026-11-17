@@ -564,6 +564,8 @@ cowfault(pagetable_t pagetable, uint64 va)
   if((*pte & PTE_COW) == 0)
     return -1;
 
+  myproc()->cowfaults++;
+
   pa = PTE2PA(*pte);
   flags = PTE_FLAGS(*pte);
 
@@ -578,6 +580,8 @@ cowfault(pagetable_t pagetable, uint64 va)
   newpa = (uint64)kalloc();
   if(newpa == 0)
     return -2;
+
+  myproc()->cowcopies++;
 
   memmove((void*)newpa, (void*)pa, PGSIZE);
   *pte = PA2PTE(newpa) | ((flags | PTE_W) & ~PTE_COW);
