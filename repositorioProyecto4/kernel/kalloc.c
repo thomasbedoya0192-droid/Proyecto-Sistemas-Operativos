@@ -1,7 +1,3 @@
-// Asignador de memoria física con conteo de referencias por página.
-// Una página compartida por Copy-on-Write tiene más de un dueño; solo
-// vuelve a la lista libre cuando su conteo llega a cero.
-
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
@@ -128,4 +124,26 @@ krefcount(void *pa)
   n = refs.count[PA2IDX(pa)];
   release(&refs.lock);
   return n;
+}
+
+//17 de nov
+void
+kstats(uint64 *libres, uint64 *compartidas)
+{
+  struct run *r;
+  uint64 n = 0, c = 0;
+
+  acquire(&kmem.lock);
+  for(r = kmem.freelist; r; r = r->next)
+    n++;
+  release(&kmem.lock);
+
+  acquire(&refs.lock);
+  for(int i = 0; i < NPAGINAS; i++)
+    if(refs.count[i] > 1)
+      c++;
+  release(&refs.lock);
+
+  *libres = n;
+  *compartidas = c;
 }
