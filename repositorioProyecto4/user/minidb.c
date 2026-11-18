@@ -234,6 +234,36 @@ contar_bits(uint64 m)
 //     una sola página), verificar encabezado y checksum, verificar que el
 //     saldo total se conservó e imprimir "snapshot: OK" o "snapshot: FALLO".
 // El formato exacto de cada línea está en el Anexo B del enunciado.
+
+// Relee snap.db y comprueba el encabezado y el checksum de las cuentas.
+static int
+verificar_snapshot(uint checksum0)
+{
+  struct snap_encabezado h;
+  int fd = open(SNAP_ARCHIVO, O_RDONLY);
+  if(fd < 0)
+    return 0;
+  if(leer_todo(fd, &h, sizeof(h)) < 0){
+    close(fd);
+    return 0;
+  }
+  char *buf = sbrk(NCUENTAS * sizeof(struct cuenta));
+  if(buf == (char *)-1)
+    morir("sbrk() falló");
+  if(leer_todo(fd, buf, NCUENTAS * sizeof(struct cuenta)) < 0){
+    close(fd);
+    return 0;
+  }
+  close(fd);
+  uint cs_archivo = checksum_tabla((struct cuenta *)buf, NCUENTAS);
+  int bytes = sizeof(h) + NCUENTAS * sizeof(struct cuenta);
+  int coincide = h.magia == SNAP_MAGIA && h.n == NCUENTAS &&
+                 h.checksum == checksum0 && cs_archivo == checksum0;
+  printf("snapshot: archivo bytes=%d checksum=0x%x coincide=%s\n",
+         bytes, cs_archivo, coincide ? "si" : "no");
+  return coincide;
+}
+
 static void
 snapshot(int m)
 {
@@ -289,11 +319,13 @@ snapshot(int m)
 
   int estado;
   wait(&estado);
+  int archivo_ok = verificar_snapshot(checksum0);
   uint checksum_act = checksum_tabla(tabla, NCUENTAS);
   uint64 saldo_fin = saldo_total();
+  int total_ok = saldo_fin == saldo0;
   printf("snapshot: checksum_actual=0x%x total_conservado=%s\n",
-         checksum_act, saldo_fin == saldo0 ? "si" : "no");
-  int ok = saldo_fin == saldo0 && estado == 0;
+         checksum_act, total_ok ? "si" : "no");
+  int ok = archivo_ok && total_ok && estado == 0;
   printf("snapshot: %s\n", ok ? "OK" : "FALLO");
   exit(ok ? 0 : 1);
 }
