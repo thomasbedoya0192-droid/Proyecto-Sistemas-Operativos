@@ -173,12 +173,53 @@ consulta(int k)
 // las NCUENTAS cuentas, escritas directamente desde la tabla (sin
 // copiarlas a otro buffer). Termina con exit(0) si todo salió bien.
 // (__attribute__((unused)) evita la advertencia mientras no se llame.)
-static void __attribute__((unused))
+// Hijo: escribe el encabezado y las cuentas tal como estaban en el fork.
+static void
 guardar_snapshot(uint checksum)
 {
-  (void)checksum;
-  exit(1);
+  struct snap_encabezado h;
+  h.magia = SNAP_MAGIA;
+  h.n = NCUENTAS;
+  h.checksum = checksum;
+  h.reservado = 0;
+
+  int fd = open(SNAP_ARCHIVO, O_CREATE | O_WRONLY | O_TRUNC);
+  if(fd < 0)
+    exit(1);
+  if(escribir_todo(fd, &h, sizeof(h)) < 0 ||
+     escribir_todo(fd, tabla, NCUENTAS * sizeof(struct cuenta)) < 0){
+    close(fd);
+    exit(1);
+  }
+  close(fd);
+  exit(0);
 }
+
+static uint64
+saldo_total(void)
+{
+  uint64 s = 0;
+  for(int i = 0; i < NCUENTAS; i++)
+    s += tabla[i].saldo;
+  return s;
+}
+
+static void
+leer_cow(struct cowstat *st)
+{
+  if(cowstat(st) < 0)
+    morir("cowstat() falló");
+}
+
+static int
+contar_bits(uint64 m)
+{
+  int n = 0;
+  for(; m; m &= m - 1)
+    n++;
+  return n;
+}
+
 
 // TODO (Parte C.2): implementen el snapshot consistente.
 //  1. Calcular checksum_tabla() y el saldo total; imprimir checksum_inicial.
@@ -197,25 +238,65 @@ static void
 snapshot(int m)
 {
   uint64 mask = 0;
-  cargar_tabla();
-  uint checksum = checksum_tabla(tabla, NCUENTAS);
-  uint64 saldo0 = 0;
-  for(int i = 0; i < NCUENTAS; i++)
-    saldo0 += tabla[i].saldo;
-  printf("snapshot: checksum_inicial=0x%X\n", checksum);
-  printf("snapshot: saldo_inicial=%ld\n", saldo0);
+  struct cowstat antes, despues;
+  int npag = NCUENTAS * sizeof(struct cuenta) / PGSIZE;
 
-  // Limpia PTE_A de las 64 páginas de la tabla: lo que pgaccess() reporte
-  // después será solo lo que toquen las transferencias.
-  if(pgaccess(tabla, NCUENTAS * sizeof(struct cuenta) / PGSIZE, &mask) < 0)
+  cargar_tabla();
+  uint checksum0 = checksum_tabla(tabla, NCUENTAS);
+  uint64 saldo0 = saldo_total();
+  printf("snapshot: checksum_inicial=0x%x\n", checksum0);
+
+  // Limpia PTE_A: lo que se mida después será solo lo que toque el padre.
+  if(pgaccess(tabla, npag, &mask) < 0)
     morir("pgaccess() falló");
 
-  // Pendiente: fork, guardar_snapshot(), transferencias y verificación.
-  (void)m;
-  printf("snapshot: FALLO (sin implementar)\n");
-  exit(1);
-}
+  int pid = fork();
+  if(pid < 0)
+    morir("fork() falló");
+  if(pid == 0)
+    guardar_snapshot(checksum0);
+  printf("snapshot: hijo pid=%d escribiendo snap.db\n", pid);
 
+  leer_cow(&antes);
+  uint semilla = 4;
+  int aplicadas = 0, rechazadas = 0;
+  for(int i = 0; i < m; i++){
+    struct transferencia t;
+    generar_transferencia(&semilla, &t);
+    struct cuenta *o = &tabla[t.origen];
+    struct cuenta *d = &tabla[t.destino];
+    if(t.origen == t.destino || o->saldo < t.monto){
+      rechazadas++;
+      continue;
+    }
+    o->saldo -= t.monto;
+    d->saldo += t.monto;
+    o->nmov++;
+    d->nmov++;
+    aplicadas++;
+  }
+  leer_cow(&despues);
+  printf("snapshot: transferencias=%d aplicadas=%d rechazadas=%d\n",
+         m, aplicadas, rechazadas);
+
+  mask = 0;
+  if(pgaccess(tabla, npag, &mask) < 0)
+    morir("pgaccess() falló");
+  printf("snapshot: paginas_tocadas=%d fallos_cow=%ld copias_cow=%ld\n",
+         contar_bits(mask),
+         despues.cowfaults - antes.cowfaults,
+         despues.cowcopies - antes.cowcopies);
+
+  int estado;
+  wait(&estado);
+  uint checksum_act = checksum_tabla(tabla, NCUENTAS);
+  uint64 saldo_fin = saldo_total();
+  printf("snapshot: checksum_actual=0x%x total_conservado=%s\n",
+         checksum_act, saldo_fin == saldo0 ? "si" : "no");
+  int ok = saldo_fin == saldo0 && estado == 0;
+  printf("snapshot: %s\n", ok ? "OK" : "FALLO");
+  exit(ok ? 0 : 1);
+}
 
 static void
 mapa(void)
