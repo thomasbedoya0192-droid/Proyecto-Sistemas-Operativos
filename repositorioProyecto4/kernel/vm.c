@@ -295,7 +295,6 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 // physical memory.
 // returns 0 on success, -1 on failure.
 // frees any allocated pages on failure.
-//cambio 12 nov
 
 // Crea en "new" las mismas páginas de "old" (0 a sz) sin copiarlas.
 // Las páginas escribibles quedan compartidas y marcadas PTE_COW en ambas tablas.
@@ -352,7 +351,6 @@ uvmclear(pagetable_t pagetable, uint64 va)
 // Copy from kernel to user.
 // Copy len bytes from src to virtual address dstva in a given page table.
 // Return 0 on success, -1 on error.
-//cambio 12 de nov
 int
 copyout(pagetable_t pagetable, uint64 psz, uint64 dstva, char *src, uint64 len)
 {

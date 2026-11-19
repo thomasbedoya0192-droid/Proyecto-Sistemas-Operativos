@@ -114,7 +114,6 @@ krefinc(void *pa)
   release(&refs.lock);
 }
 
-//cambio 11 nov
 //Devuelve cuántas referencias tiene una página física.
 int
 krefcount(void *pa)
@@ -126,7 +125,6 @@ krefcount(void *pa)
   return n;
 }
 
-//17 de nov
 void
 kstats(uint64 *libres, uint64 *compartidas)
 {

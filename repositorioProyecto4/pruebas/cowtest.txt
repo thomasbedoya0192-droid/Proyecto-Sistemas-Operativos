@@ -1,0 +1,35 @@
+Proyecto 4 - Copy-on-Write y MiniDB - evidencia de pruebas
+Prueba:     cowtest
+Fecha:      2026-11-19 13:14:27
+Commit:     fa2ddcb
+Máquina:    archy (3 CPUs en QEMU)
+Duración:   2 s
+Fin:        terminó
+Resultado:  PASÓ
+------------------------------------------------------------
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+xv6 kernel is booting
+
+hart 2 starting
+hart 1 starting
+init: starting sh
+$ cowtest
+cowtest: inicio
+prueba fork_grande: OK
+prueba aislamiento: OK
+prueba tres_niveles: OK
+prueba copyout_cow: OK
+prueba perezosa_cow: OK
+prueba ugetpid_hijo: OK
+usertrap(): unexpected scause 0xf pid=25
+            sepc=0x14 stval=0x0
+usertrap(): unexpected scause 0xf pid=26
+            sepc=0x38 stval=0x3fffffd000
+prueba solo_lectura: OK
+prueba contadores: OK
+prueba sin_fugas: OK
+prueba sin_memoria: OK
+prueba concurrente: OK
+cowtest: TODAS LAS PRUEBAS PASARON (11 de 11)
+$ 

@@ -38,7 +38,6 @@ uint64
 usertrap(void)
 {
   int which_dev = 0;
-//cambio 11 nov
   int cow;
 
   if ((r_sstatus() & SSTATUS_SPP) != 0)

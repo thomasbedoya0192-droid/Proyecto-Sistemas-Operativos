@@ -1,0 +1,139 @@
+Proyecto 4 - Copy-on-Write y MiniDB - evidencia de pruebas
+Prueba:     minidb consulta 1, minidb consulta 2, minidb consulta 3, minidb consulta 8, minidb snapshot 2000, minidb snapshot 0, minidb mapa
+Fecha:      2026-11-19 13:14:36
+Commit:     fa2ddcb
+Máquina:    archy (3 CPUs en QEMU)
+Duración:   10 s
+Fin:        terminó
+Resultado:  PASÓ
+------------------------------------------------------------
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+xv6 kernel is booting
+
+hart 1 starting
+hart 2 starting
+init: starting sh
+$ minidb consulta 1
+consulta: trabajadores=1
+trabajador pid=4 cuentas=[0,8192)
+sucursal 0: cuentas=1024 total=25610224 max=50055
+sucursal 1: cuentas=1024 total=25750064 max=50068
+sucursal 2: cuentas=1024 total=25677072 max=50050
+sucursal 3: cuentas=1024 total=25624464 max=50071
+sucursal 4: cuentas=1024 total=25671856 max=50084
+sucursal 5: cuentas=1024 total=25685600 max=50097
+sucursal 6: cuentas=1024 total=25582992 max=50021
+sucursal 7: cuentas=1024 total=25680128 max=50051
+consulta: firma=0x2DD2F610
+consulta: paginas_libres antes=32433 con_trabajadores=32424
+consulta: ticks=19
+consulta: OK
+$ minidb consulta 2
+consulta: trabajadores=2
+trabajador pid=6 cuentas=[0,4096)
+trabajador pid=7 cuentas=[4096,8192)
+sucursal 0: cuentas=1024 total=25610224 max=50055
+sucursal 1: cuentas=1024 total=25750064 max=50068
+sucursal 2: cuentas=1024 total=25677072 max=50050
+sucursal 3: cuentas=1024 total=25624464 max=50071
+sucursal 4: cuentas=1024 total=25671856 max=50084
+sucursal 5: cuentas=1024 total=25685600 max=50097
+sucursal 6: cuentas=1024 total=25582992 max=50021
+sucursal 7: cuentas=1024 total=25680128 max=50051
+consulta: firma=0x2DD2F610
+consulta: paginas_libres antes=32433 con_trabajadores=32415
+consulta: ticks=10
+consulta: OK
+$ minidb consulta 3
+consulta: trabajadores=3
+trabajador pid=9 cuentas=[0,2730)
+trabajador pid=10 cuentas=[2730,5461)
+trabajador pid=11 cuentas=[5461,8192)
+sucursal 0: cuentas=1024 total=25610224 max=50055
+sucursal 1: cuentas=1024 total=25750064 max=50068
+sucursal 2: cuentas=1024 total=25677072 max=50050
+sucursal 3: cuentas=1024 total=25624464 max=50071
+sucursal 4: cuentas=1024 total=25671856 max=50084
+sucursal 5: cuentas=1024 total=25685600 max=50097
+sucursal 6: cuentas=1024 total=25582992 max=50021
+sucursal 7: cuentas=1024 total=25680128 max=50051
+consulta: firma=0x2DD2F610
+consulta: paginas_libres antes=32433 con_trabajadores=32406
+consulta: ticks=7
+consulta: OK
+$ minidb consulta 8
+consulta: trabajadores=8
+trabajador pid=13 cuentas=[0,1024)
+trabajador pid=14 cuentas=[1024,2048)
+trabajador pid=15 cuentas=[2048,3072)
+trabajador pid=16 cuentas=[3072,4096)
+trabajador pid=17 cuentas=[4096,5120)
+trabajador pid=18 cuentas=[5120,6144)
+trabajador pid=19 cuentas=[6144,7168)
+trabajador pid=20 cuentas=[7168,8192)
+sucursal 0: cuentas=1024 total=25610224 max=50055
+sucursal 1: cuentas=1024 total=25750064 max=50068
+sucursal 2: cuentas=1024 total=25677072 max=50050
+sucursal 3: cuentas=1024 total=25624464 max=50071
+sucursal 4: cuentas=1024 total=25671856 max=50084
+sucursal 5: cuentas=1024 total=25685600 max=50097
+sucursal 6: cuentas=1024 total=25582992 max=50021
+sucursal 7: cuentas=1024 total=25680128 max=50051
+consulta: firma=0x2DD2F610
+consulta: paginas_libres antes=32433 con_trabajadores=32361
+consulta: ticks=7
+consulta: OK
+$ minidb snapshot 2000
+snapshot: checksum_inicial=0x6915D295
+snapshot: hijo pid=22 escribiendo snap.db
+snapshot: transferencias=2000 aplicadas=1978 rechazadas=22
+snapshot: paginas_tocadas=30 fallos_cow=30 copias_cow=30
+snapshot: archivo bytes=262160 checksum=0x6915D295 coincide=si
+snapshot: checksum_actual=0x4AB3E209 total_conservado=si
+snapshot: OK
+$ minidb snapshot 0
+snapshot: checksum_inicial=0x6915D295
+snapshot: hijo pid=24 escribiendo snap.db
+snapshot: transferencias=0 aplicadas=0 rechazadas=0
+snapshot: paginas_tocadas=0 fallos_cow=0 copias_cow=0
+snapshot: archivo bytes=262160 checksum=0x6915D295 coincide=si
+snapshot: checksum_actual=0x6915D295 total_conservado=si
+snapshot: OK
+$ minidb mapa
+mapa: tabla en 0x5000 (2 páginas)
+mapa: hijo antes de escribir
+page table 0x0000000087f1d000
+ ..0x0000000000000000: pte 0x0000000021fb3801 pa 0x0000000087ece000
+ .. ..0x0000000000000000: pte 0x0000000021fca801 pa 0x0000000087f2a000
+ .. .. ..0x0000000000000000: pte 0x0000000021fcb05b pa 0x0000000087f2c000
+ .. .. ..0x0000000000001000: pte 0x0000000021fb645b pa 0x0000000087ed9000
+ .. .. ..0x0000000000002000: pte 0x0000000021fce113 pa 0x0000000087f38000
+ .. .. ..0x0000000000003000: pte 0x0000000021fcd903 pa 0x0000000087f36000
+ .. .. ..0x0000000000004000: pte 0x0000000021fb34d7 pa 0x0000000087ecd000
+ .. .. ..0x0000000000005000: pte 0x0000000021fb61d3 pa 0x0000000087ed8000
+ .. .. ..0x0000000000006000: pte 0x0000000021fd49d3 pa 0x0000000087f52000
+ ..0x0000003fc0000000: pte 0x0000000021fbfc01 pa 0x0000000087eff000
+ .. ..0x0000003fffe00000: pte 0x0000000021fbf801 pa 0x0000000087efe000
+ .. .. ..0x0000003fffffd000: pte 0x0000000021fac013 pa 0x0000000087eb0000
+ .. .. ..0x0000003fffffe000: pte 0x0000000021fb58c7 pa 0x0000000087ed6000
+ .. .. ..0x0000003ffffff000: pte 0x0000000020001c4b pa 0x0000000080007000
+mapa: hijo después de escribir en 0x5000
+page table 0x0000000087f1d000
+ ..0x0000000000000000: pte 0x0000000021fb3801 pa 0x0000000087ece000
+ .. ..0x0000000000000000: pte 0x0000000021fca801 pa 0x0000000087f2a000
+ .. .. ..0x0000000000000000: pte 0x0000000021fcb05b pa 0x0000000087f2c000
+ .. .. ..0x0000000000001000: pte 0x0000000021fb645b pa 0x0000000087ed9000
+ .. .. ..0x0000000000002000: pte 0x0000000021fce113 pa 0x0000000087f38000
+ .. .. ..0x0000000000003000: pte 0x0000000021fcd903 pa 0x0000000087f36000
+ .. .. ..0x0000000000004000: pte 0x0000000021fb34d7 pa 0x0000000087ecd000
+ .. .. ..0x0000000000005000: pte 0x0000000021fca0d7 pa 0x0000000087f28000
+ .. .. ..0x0000000000006000: pte 0x0000000021fd49d3 pa 0x0000000087f52000
+ ..0x0000003fc0000000: pte 0x0000000021fbfc01 pa 0x0000000087eff000
+ .. ..0x0000003fffe00000: pte 0x0000000021fbf801 pa 0x0000000087efe000
+ .. .. ..0x0000003fffffd000: pte 0x0000000021fac013 pa 0x0000000087eb0000
+ .. .. ..0x0000003fffffe000: pte 0x0000000021fb58c7 pa 0x0000000087ed6000
+ .. .. ..0x0000003ffffff000: pte 0x0000000020001c4b pa 0x0000000080007000
+$ 
+Revisión de los resultados de MiniDB: OK
+  aceleración con 3 trabajadores: 2.71x (19 ticks con 1, 7 con 3)

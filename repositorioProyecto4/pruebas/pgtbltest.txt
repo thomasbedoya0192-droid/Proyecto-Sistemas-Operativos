@@ -1,0 +1,50 @@
+Proyecto 4 - Copy-on-Write y MiniDB - evidencia de pruebas
+Prueba:     pgtbltest
+Fecha:      2026-11-19 13:14:52
+Commit:     fa2ddcb
+Máquina:    archy (3 CPUs en QEMU)
+Duración:   16 s
+Fin:        terminó
+Resultado:  PASÓ
+------------------------------------------------------------
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+xv6 kernel is booting
+
+hart 1 starting
+hart 2 starting
+init: starting sh
+$ pgtbltest
+pgtbltest: inicio
+prueba ugetpid_basico: OK
+prueba ugetpid_hijos: OK
+prueba ugetpid_exec: OK
+usertrap(): unexpected scause 0xf pid=17
+            sepc=0xce stval=0x3fffffd000
+prueba usyscall_solo_lectura: OK
+prueba heap_no_invade: OK
+prueba sin_fugas_usyscall: OK
+vmprint: region_perezosa=0x0000000000005000 tocada=0x0000000000008000
+vmprint: inicio
+page table 0x0000000087f28000
+ ..0x0000000000000000: pte 0x0000000021fd2001 pa 0x0000000087f48000
+ .. ..0x0000000000000000: pte 0x0000000021fd1c01 pa 0x0000000087f47000
+ .. .. ..0x0000000000000000: pte 0x0000000021fc885b pa 0x0000000087f22000
+ .. .. ..0x0000000000001000: pte 0x0000000021fc7c5b pa 0x0000000087f1f000
+ .. .. ..0x0000000000002000: pte 0x0000000021fc79d3 pa 0x0000000087f1e000
+ .. .. ..0x0000000000003000: pte 0x0000000021fc7503 pa 0x0000000087f1d000
+ .. .. ..0x0000000000004000: pte 0x0000000021fd18d7 pa 0x0000000087f46000
+ .. .. ..0x0000000000008000: pte 0x0000000021fce0d7 pa 0x0000000087f38000
+ ..0x0000003fc0000000: pte 0x0000000021fc9c01 pa 0x0000000087f27000
+ .. ..0x0000003fffe00000: pte 0x0000000021fc9801 pa 0x0000000087f26000
+ .. .. ..0x0000003fffffd000: pte 0x0000000021fd1413 pa 0x0000000087f45000
+ .. .. ..0x0000003fffffe000: pte 0x0000000021fce4c7 pa 0x0000000087f39000
+ .. .. ..0x0000003ffffff000: pte 0x0000000020001c4b pa 0x0000000080007000
+vmprint: fin
+prueba vmprint: OK
+prueba pgaccess_basico: OK
+prueba pgaccess_64: OK
+prueba pgaccess_argumentos: OK
+prueba pgaccess_perezoso: OK
+pgtbltest: TODAS LAS PRUEBAS PASARON (11 de 11)
+$ 

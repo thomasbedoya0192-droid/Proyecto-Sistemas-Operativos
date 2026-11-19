@@ -1,15 +1,5 @@
 // minidb: base de datos de cuentas en memoria (Proyecto 4).
 // Sistemas Operativos 2026-2, Universidad EAFIT.
-//
-// ESQUELETO entregado por el docente. Ya están hechos:
-//   minidb consulta K     reporte por sucursal con K procesos trabajadores
-//   minidb mapa           vmprint() de un hijo antes y después de escribir
-// El grupo debe implementar (busquen "TODO"):
-//   minidb snapshot M     guarda snap.db en un hijo mientras el padre
-//                         aplica M transferencias (sección C.2 del enunciado)
-//
-// Estudien consulta(): es el modelo de multiprogramación del proyecto
-// (varios hijos con fork(), un pipe por hijo, el padre combina).
 #include "kernel/types.h"
 #include "kernel/riscv.h"
 #include "kernel/fcntl.h"
@@ -167,12 +157,6 @@ consulta(int k)
   exit(ok ? 0 : 1);
 }
 
-
-// TODO (Parte C.2): el hijo escribe en SNAP_ARCHIVO un struct
-// snap_encabezado (con el checksum calculado ANTES del fork) seguido de
-// las NCUENTAS cuentas, escritas directamente desde la tabla (sin
-// copiarlas a otro buffer). Termina con exit(0) si todo salió bien.
-// (__attribute__((unused)) evita la advertencia mientras no se llame.)
 // Hijo: escribe el encabezado y las cuentas tal como estaban en el fork.
 static void
 guardar_snapshot(uint checksum)
@@ -219,21 +203,6 @@ contar_bits(uint64 m)
     n++;
   return n;
 }
-
-
-// TODO (Parte C.2): implementen el snapshot consistente.
-//  1. Calcular checksum_tabla() y el saldo total; imprimir checksum_inicial.
-//  2. Limpiar los bits PTE_A de la tabla con pgaccess() (64 páginas).
-//  3. fork(): el hijo llama a guardar_snapshot(); el padre imprime la
-//     línea "snapshot: hijo pid=..." y NO espera al hijo todavía.
-//  4. El padre aplica m transferencias con generar_transferencia()
-//     (semilla inicial 4), midiendo cowstat() antes y después.
-//  5. pgaccess() para contar las páginas tocadas; imprimir las líneas
-//     "transferencias=..." y "paginas_tocadas=...".
-//  6. wait(), releer snap.db (usen sbrk() para el buffer: la pila es de
-//     una sola página), verificar encabezado y checksum, verificar que el
-//     saldo total se conservó e imprimir "snapshot: OK" o "snapshot: FALLO".
-// El formato exacto de cada línea está en el Anexo B del enunciado.
 
 // Relee snap.db y comprueba el encabezado y el checksum de las cuentas.
 static int
